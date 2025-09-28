@@ -327,6 +327,33 @@ Screenshot:
 
 
 
+STEP 6: RESULT ANALYSIS
+
+1. Descriptive:
+   The top-selling products in Kigali for Q1 were Coffee Beans and Rice 5kg. Kigali shows a steady increase in monthly totals from Jan → Mar (running total and MoM +12%).
+
+  2. Diagnostic:
+     The increase in Kigali corresponds with promotional activity in Feb and the launch of a loyalty discount; customer quartile analysis shows that top-quartile customers (NTILE=1) account for ~45% of revenue, indicating concentration risk.
+
+   3. Prescriptive:
+      Target top-quartile customers with personalized bundles and move underperforming products into a 2-week promotional price or replace with higher-margin SKUs; monitor running totals weekly and set alerts when regional MoM drops below -5%.
+
+
+STEP 7: REFERENCES
+
+1. https://www.w3schools.com/sql/sql_ref_keywords.asp
+2. https://www.youtube.com/watch?v=Ww71knvhQ-s
+3. https://mode.com/sql-tutorial/sql-window-functions
+4. https://www.geeksforgeeks.org/plsql/window-functions-in-plsql/
+5. https://www.datacamp.com/cheat-sheet/sql-window-functions-cheat-sheet
+6. https://medium.com/@hisyam126/oracle-sql-window-functions-0114899572c4
+7. https://www.youtube.com/watch?v=rIcB4zMYMas
+8. https://www.youtube.com/watch?v=y1KCM8vbYe4
+9. https://www.youtube.com/watch?v=zAmJPdZu8Rg
+10. https://www.youtube.com/watch?v=o666k19mZwE
+    
+
+
 
  
 
