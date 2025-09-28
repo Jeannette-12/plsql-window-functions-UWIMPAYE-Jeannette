@@ -41,6 +41,9 @@ plsql, then it request to input user and password , after  I created new user an
   5      join_date     DATE DEFAULT SYSDATE
   6  );
 
+  Screenshot:
+  
+
    TABLE 2: PRODUCTS
  CREATE TABLE products (
   2  product_id NUMBER PRIMARY KEY,
@@ -163,82 +166,166 @@ STEP 4: WINDOW FUNCTIONS IMPLEMENTATIONS
 1. Ranking: ROW_NUMBER(), RANK(), DENSE_RANK(), PERCENT_RANK() Use case: Top N customers by
 revenue:
 
- WITH cust_total AS (
-  2    SELECT customer_id, SUM(amount) AS total_spend
-  3    FROM transactions
-  4    GROUP BY customer_id
-  5  )
-  6  SELECT
-  7    customer_id,
-  8    total_spend,
-  9  ROW_NUMBER()    OVER (ORDER BY total_spend DESC) AS row_num,
- 10  RANK()          OVER (ORDER BY total_spend DESC) AS rnk,
- 11  DENSE_RANK()    OVER (ORDER BY total_spend DESC) AS dense_rnk,
- 12    PERCENT_RANK()  OVER (ORDER BY total_spend DESC) AS pct_rank
- 13  FROM cust_total
- 14  ORDER BY total_spend DESC;
+WITH cust_total AS (
+  SELECT
+    customer_id,
+    SUM(amount) AS total_spend          -- total amount spent by this customer across all transactions
+  FROM transactions
+  GROUP BY customer_id                  -- one row per customer with their total_spend
+)
+
+-- Now select from the CTE and apply several analytic (window) functions
+SELECT
+  customer_id,                           -- the customer's ID
+  total_spend,                            -- the pre-calculated total spend from the CTE
+
+  -- 1. Assigns a unique sequential number starting at 1, ordered by highest total_spend.
+  ROW_NUMBER() OVER (ORDER BY total_spend DESC) AS row_num,
+
+  -- 2. Assigns a rank based on total_spend, with gaps if two customers tie.
+  --    Example: 1,2,2,4 (notice the gap after a tie).
+  RANK() OVER (ORDER BY total_spend DESC) AS rnk,
+
+  -- 3. Like RANK but without gaps; ties get the same rank and the next rank is consecutive.
+  --    Example: 1,2,2,3.
+  DENSE_RANK() OVER (ORDER BY total_spend DESC) AS dense_rnk,
+
+  -- 4. Returns the relative rank of the current row:
+  --    (rank - 1) / (total rows - 1), producing a value between 0 and 1.
+  --    Useful for percentile-style calculations.
+  PERCENT_RANK() OVER (ORDER BY total_spend DESC) AS pct_rank
+
+FROM cust_total
+ORDER BY total_spend DESC;               -- show customers from highest to lowest spender
+
+Screenshot:
+<img width="951" height="594" alt="ranking functions" src="https://github.com/user-attachments/assets/05d15bb2-1f66-4691-b14a-a9bdade6d032" />
+
 
  2. Aggregate: SUM(), AVG(), MIN(), MAX() with frame comparisons (ROWS vs RANGE) Use case: Running totals & trends:
 
-   
- SELECT
-  2    t.region,
-  3    t.sale_date,
-  4    t.amount,
-  5    SUM(t.amount) OVER (
-  6      PARTITION BY t.region
-  7      ORDER BY t.sale_date
-  8      ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
-  9    ) AS running_total_rows,
- 10    SUM(t.amount) OVER (
- 11      PARTITION BY t.region
- 12      ORDER BY t.sale_date
- 13      RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
- 14    ) AS running_total_range
- 15  FROM transactions t
- 16  ORDER BY t.region, t.sale_date; 
+
+
+SELECT
+  t.region,                                -- region where the sale occurred
+  t.sale_date,                             -- date of the sale
+  t.amount,                                -- amount of the individual transaction
+
+  -- Running total using a ROWS frame:
+  -- For each row (each individual transaction) within the same region,
+  -- order by sale_date and sum all amounts from the very first row
+  -- (UNBOUNDED PRECEDING) up to the current row.
+  SUM(t.amount) OVER (
+    PARTITION BY t.region                  -- restart running total for each region
+    ORDER BY t.sale_date                   -- order transactions by date
+    ROWS BETWEEN UNBOUNDED PRECEDING       -- frame starts from the first row
+         AND CURRENT ROW                   -- frame ends at the current row
+  ) AS running_total_rows,
+
+  -- Running total using a RANGE frame:
+  -- Similar to the above but the frame is defined by the ORDER BY value,
+  -- i.e. all rows that have a sale_date less than or equal to the current
+  -- row's sale_date. If multiple transactions share the same date,
+  -- RANGE will include all of them at once.
+  SUM(t.amount) OVER (
+    PARTITION BY t.region                  -- again, compute separately for each region
+    ORDER BY t.sale_date
+    RANGE BETWEEN UNBOUNDED PRECEDING
+          AND CURRENT ROW
+  ) AS running_total_range
+
+FROM transactions t
+ORDER BY t.region, t.sale_date;            -- final output sorted first by region then by date
+
+Screenshot:
+<img width="956" height="599" alt="aggregate functions" src="https://github.com/user-attachments/assets/4905d569-7326-4d78-9c5e-2d05da21fe8c" />
+
 
  3. Navigation: LAG(), LEAD(), growth % calculations Use case: Period-to-period analysis
 
+WITH monthly AS (
+  SELECT
+    TRUNC(sale_date,'MM') AS month_start,  -- first day of the month of each sale
+    region,                                -- sales region
+    SUM(amount) AS month_total             -- total sales amount for that region & month
+  FROM transactions
+  GROUP BY
+    TRUNC(sale_date,'MM'),
+    region                                 -- group by month and region
+)
 
- WITH monthly AS (
-  2    SELECT TRUNC(sale_date,'MM') AS month_start,
-  3           region,
-  4           SUM(amount) AS month_total
-  5    FROM transactions
-  6    GROUP BY TRUNC(sale_date,'MM'), region
-  7  )
-  8  SELECT
-  9    month_start,
- 10    region,
- 11    month_total,
- 12    LAG(month_total) OVER (PARTITION BY region ORDER BY month_start) AS prev_month_total,
- 13    CASE
- 14      WHEN LAG(month_total) OVER (PARTITION BY region ORDER BY month_start) IS NULL THEN NULL
- 15      WHEN LAG(month_total) OVER (PARTITION BY region ORDER BY month_start) = 0 THEN NULL
- 16      ELSE ROUND((month_total - LAG(month_total) OVER (PARTITION BY region ORDER BY month_start))
- 17                 / LAG(month_total) OVER (PARTITION BY region ORDER BY month_start) * 100,2)
- 18    END AS mom_pct_change
- 19  FROM monthly
- 20  ORDER BY region, month_start;
+-- From that monthly summary, calculate month-over-month growth
+SELECT
+  month_start,                              -- month being reported (first day of the month)
+  region,                                   -- region for which totals are calculated
+  month_total,                              -- total sales for this region/month
+
+  -- Previous month's total for the same region
+  LAG(month_total) OVER (
+    PARTITION BY region                     -- look only within the same region
+    ORDER BY month_start                    -- order months chronologically
+  ) AS prev_month_total,
+
+  -- Month-over-month % change compared to the previous month
+  CASE
+    -- If there is no previous month (first month) → NULL
+    WHEN LAG(month_total) OVER (PARTITION BY region ORDER BY month_start) IS NULL THEN NULL
+    -- If previous month total is 0 → avoid division by zero → NULL
+    WHEN LAG(month_total) OVER (PARTITION BY region ORDER BY month_start) = 0 THEN NULL
+    -- Otherwise calculate % change: (current – previous) / previous * 100
+    ELSE ROUND(
+           (month_total
+            - LAG(month_total) OVER (PARTITION BY region ORDER BY month_start))
+           / LAG(month_total) OVER (PARTITION BY region ORDER BY month_start)
+           * 100, 2
+         )
+  END AS mom_pct_change                      -- Month-over-month percentage change
+
+FROM monthly
+ORDER BY region, month_start;                -- show results in region & time order
+
+Screenshot:
+<img width="948" height="621" alt="navigation function" src="https://github.com/user-attachments/assets/27ceaf3c-43a0-47d6-857c-be83e52a358f" />
+
+
 
  4. Distribution: NTILE(4), CUME_DIST() Use case: Customer segmentation
 
     
- WITH cust_total AS (
-  2    SELECT customer_id, SUM(amount) AS total_spend
-  3    FROM transactions
-  4    GROUP BY customer_id
-  5  )
-  6  SELECT
-  7    customer_id,
-  8    total_spend,
-  9    NTILE(4) OVER (ORDER BY total_spend DESC) AS quartile_bucket,
- 10    CUME_DIST() OVER (ORDER BY total_spend DESC) AS cume_dist
- 11  FROM cust_total
- 12  ORDER BY total_spend DESC;
+-- Step 1: Create a CTE (Common Table Expression) that calculates
+-- each customer's total spending across all transactions.
+WITH cust_total AS (
+  SELECT
+    customer_id,
+    SUM(amount) AS total_spend       -- total amount this customer has spent
+  FROM transactions
+  GROUP BY customer_id               -- one row per customer with their total_spend
+)
 
- 
+-- Step 2: From that summary, calculate quartiles and cumulative distribution
+SELECT
+  customer_id,                        -- ID of the customer
+  total_spend,                         -- total amount spent by the customer
+
+  -- NTILE(4) splits the ordered set into 4 nearly equal groups (quartiles).
+  -- Because we order by total_spend DESC:
+  --   quartile_bucket = 1 -> top 25% spenders
+  --   quartile_bucket = 4 -> bottom 25% spenders.
+  NTILE(4) OVER (ORDER BY total_spend DESC) AS quartile_bucket,
+
+  -- CUME_DIST() returns the cumulative distribution: a number between 0 and 1
+  -- showing the proportion of rows with total_spend greater than or equal
+  -- to the current row's value (given the DESC order).
+  -- Example: value 0.75 means 75% of customers have spent at least this much.
+  CUME_DIST() OVER (ORDER BY total_spend DESC) AS cume_dist
+
+FROM cust_total
+ORDER BY total_spend DESC;             -- display customers from highest to lowest spender
+
+Screenshot:
+<img width="951" height="598" alt="distribution function" src="https://github.com/user-attachments/assets/cf23f471-7745-4ba8-bcca-7df6e043f31c" />
+
+
 
 
  
