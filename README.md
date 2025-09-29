@@ -42,6 +42,8 @@ plsql, then it request to input user and password , after  I created new user an
   6  );
 
   Screenshot:
+  <img width="1022" height="186" alt="table_customers" src="https://github.com/user-attachments/assets/07cc4dce-3acd-4b60-8470-403bcfcd0ec5" />
+
   
 
    TABLE 2: PRODUCTS
@@ -50,6 +52,9 @@ plsql, then it request to input user and password , after  I created new user an
   3  name          VARCHAR2(100) NOT NULL,
   4    category      VARCHAR2(50)
   5  );
+
+
+<img width="923" height="147" alt="table_products" src="https://github.com/user-attachments/assets/4088d606-1937-46ee-a83e-e03418ab51ed" />
 
    TABLE 3: TRANSACTIONS
    SQL> CREATE TABLE transactions (
@@ -64,6 +69,7 @@ plsql, then it request to input user and password , after  I created new user an
  10      CONSTRAINT fk_trx_prod FOREIGN KEY (product_id) REFERENCES products(product_id)
  11  );
 
+
  CREATE SEQUENCE transactions_seq START WITH 1 INCREMENT BY 1 NOCACHE NOCYCLE;
 
  CREATE OR REPLACE TRIGGER trg_bi_transactions
@@ -76,6 +82,9 @@ plsql, then it request to input user and password , after  I created new user an
   8  END;
   9
  10  /
+
+ <img width="1023" height="664" alt="table_transactions" src="https://github.com/user-attachments/assets/b4b2bfd8-98de-4825-805a-e64d4affb00b" />
+
  
 
 INSERTING VALUES :
@@ -92,6 +101,9 @@ INSERT INTO customers (customer_id, name, region, join_date) VALUES (3, 'Claire 
 
 commit;
 
+<img width="879" height="222" alt="insert_into_customers" src="https://github.com/user-attachments/assets/0ff30811-1895-4d81-ac36-3e00c63cf0b8" />
+
+
 INSERT INTO PRODUCTS:
 
 
@@ -106,6 +118,9 @@ INSERT INTO products (product_id, name, category) VALUES (2, 'Cooking Oil',  'Ho
 INSERT INTO products (product_id, name, category) VALUES (5, 'Sugar 2kg',    'Food');
 
 commit;
+
+<img width="866" height="240" alt="insert_into_products" src="https://github.com/user-attachments/assets/3e35624c-96e8-40ae-b460-afbec8b2cf22" />
+
 
 INSERT INTO TRANSACTIONS:
 
@@ -142,21 +157,7 @@ INSERT INTO transactions (customer_id, product_id, sale_date, quantity, amount, 
 
  COMMIT;
 
- ER DIAGRAM:
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+<img width="880" height="334" alt="insert_into_transactions" src="https://github.com/user-attachments/assets/750f1dff-31ef-49b9-9022-c3cf234d6c53" />
 
 
 
@@ -351,6 +352,13 @@ STEP 7: REFERENCES
 8. https://www.youtube.com/watch?v=y1KCM8vbYe4
 9. https://www.youtube.com/watch?v=zAmJPdZu8Rg
 10. https://www.youtube.com/watch?v=o666k19mZwE
+
+
+
+
+Created by Jeannette UWIMPAYE
+
+Date: 29/09/2025
     
 
 
